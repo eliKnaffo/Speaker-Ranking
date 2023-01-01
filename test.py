@@ -1,6 +1,7 @@
 import os
 import pprint
 import numpy as np
+from pydub import AudioSegment
 from collections import namedtuple
 from collections import defaultdict
 from pyannote.audio import Pipeline
@@ -9,8 +10,27 @@ from pyannote.audio import Pipeline
 Splits = namedtuple('Splits',('start','stop'))
 speakers_dict = defaultdict(list)
 
+
+
 pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization",
-                                    use_auth_token="ENTER YOUR API KEY HERE")
+                                    use_auth_token="")
+
+
+
+def devide_wav_by_speaker_and_intervals(wav_file, speaker_id):
+    myaudio = AudioSegment.from_file(wav_file, "wav")
+    intervals_list = []
+    
+    for curr_speaker,Splits in speakers_dict.items():
+      print(curr_speaker)
+      if(curr_speaker == speaker_id):
+        print(Splits.start)
+        wav_file_part = myaudio[Splits.start:Splits.end]
+        intervals_list.append(wav_file_part)
+    
+    return intervals_list
+      
+
 
 
 def split_speaker_id(speaker):
@@ -33,7 +53,7 @@ def speaker_diaraztion():
 
 def avg_speed_of_speaker(speaker_id):
   #get speaker intervals
-  speaker_intervals = speakers_dict.get("1")
+  speaker_intervals = speakers_dict.get(speaker_id)
   #check speed in each interval
   #avarge the intervals
   #save to speaker speeds dict
@@ -42,7 +62,10 @@ def avg_speed_of_speaker(speaker_id):
   
 def main():
     speaker_diaraztion()
-    avg_speed_of_speaker(1)
+    test_list = devide_wav_by_speaker_and_intervals("test.wav",1)
+    
+    print(test_list)
+    
     
     
 main()
