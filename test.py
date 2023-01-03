@@ -66,9 +66,10 @@ def get_speech_rate(file):
     print(rate)
 
 
-def repetative_analsys(file, speaker_id):
-  
-  text = r.recognize_google(file)
+def repetative_analsys(file_path, speaker_id):
+  audio_interval = AudioSegment.from_file(file_path, "wav")
+
+  text = r.recognize_google(audio_interval)
   total_repeat_sum = 0
   
   splited_text = text.split()
@@ -88,9 +89,9 @@ def repetative_analsys(file, speaker_id):
       total_repeat_sum += 1
   
   if(total_repeat_sum >= 3):
-    repeat_ranking_list[speaker_id] = -1
+    repeat_ranking_list[speaker_id] += -1
   else:
-    repeat_ranking_list[speaker_id] = 1
+    repeat_ranking_list[speaker_id] += 1
   
   
 
@@ -107,9 +108,10 @@ def main():
       f = os.path.join("speaker_{speaker_id}".format(speaker_id = int(curr_speaker)),filename)
       print("im before the if")
       if os.path.isfile(f):
-        print("im after the if")
-        repetative_analsys(filename,curr_speaker)
+        repetative_analsys("speaker_{speaker_id}/audio_chunk_{curr_file}".format(curr_file = filename, speaker_id = int(curr_speaker)),curr_speaker)
 
     
     
 main()
+
+print(repeat_ranking_list)
