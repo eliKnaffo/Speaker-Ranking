@@ -19,7 +19,7 @@ pasues_ranking_list = [0] * 10
 
 
 pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization",
-                                    use_auth_token=")
+                                    use_auth_token="")
 
 
 
