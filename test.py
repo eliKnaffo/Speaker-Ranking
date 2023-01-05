@@ -19,7 +19,7 @@ pasues_ranking_list = [0] * 10
 
 
 pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization",
-                                    use_auth_token="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")
+                                    use_auth_token=")
 
 
 
@@ -67,48 +67,54 @@ def get_speech_rate(file):
 
 
 def repetative_analsys(file_path, speaker_id):
-  audio_interval = AudioSegment.from_file(file_path, "wav")
-
-  text = r.recognize_google(audio_interval)
-  total_repeat_sum = 0
+  current_interval = sr.AudioFile(file_path)
+  with current_interval as source:
+    audio = r.record(source)
   
-  splited_text = text.split()
+    print(file_path)
+    #audio_interval = AudioSegment.from_file(file_path, "wav")
+    text = r.recognize_google(audio, language='en-IN', show_all=True)
+    #debuging
+    print(text)
+
+    total_repeat_sum = 0
+  
+  #splited_text = text.split()
   #a dict to hold how much each word repeats
   word_counts = {}
-  
-  for word in splited_text:
-     # If the word is not yet in the dictionary, add it with a count of 1
+    
+  for word in text:
+      # If the word is not yet in the dictionary, add it with a count of 1
     if word not in word_counts:
       word_counts[word] = 1
-    # If the word is already in the dictionary, increment its count
+      # If the word is already in the dictionary, increment its count
     else:
       word_counts[word] += 1
-  
+    
   for curr_value in word_counts.values():
-    if curr_value >= 3:
+    if (curr_value >= 3):
       total_repeat_sum += 1
-  
-  if(total_repeat_sum >= 3):
-    repeat_ranking_list[speaker_id] += -1
-  else:
-    repeat_ranking_list[speaker_id] += 1
+    
+    if(total_repeat_sum >= 3):
+      repeat_ranking_list[speaker_id] += -1
+    else:
+      repeat_ranking_list[speaker_id] += 1
   
   
 
  
  
-#need to add next -> format how the files are saved -> how to iterate over those files by speaker for each feature.  
+#need to add next -> add features from other branch -> full test
 def main():
   speaker_diaraztion()
   devide_wav_by_speaker_and_intervals("test.wav")
 
   for curr_speaker in speakers_dict.keys():
-    print("im in the first for loop")
-    for filename in os.listdir("speaker_{speaker_id}".format(speaker_id = int(curr_speaker))):
-      f = os.path.join("speaker_{speaker_id}".format(speaker_id = int(curr_speaker)),filename)
-      print("im before the if")
+    for filename in os.listdir(f"speaker_{int(curr_speaker)}"):
+      print(filename)
+      f = os.path.join(f"speaker_{int(curr_speaker)}" ,filename)
       if os.path.isfile(f):
-        repetative_analsys("speaker_{speaker_id}/audio_chunk_{curr_file}".format(curr_file = filename, speaker_id = int(curr_speaker)),curr_speaker)
+        repetative_analsys(f"speaker_{int(curr_speaker)}/{filename}", curr_speaker)
 
     
     
