@@ -6,6 +6,7 @@ import speech_recognition as sr
 from collections import namedtuple
 from collections import defaultdict
 from pyannote.audio import Pipeline
+from distutils.errors import UnknownFileError
 
 r = sr.Recognizer()
 
@@ -28,12 +29,14 @@ def devide_wav_by_speaker_and_intervals(wav_file):
     
     for curr_speaker,curr_split_list in speakers_dict.items():     
         for curr_split in curr_split_list:
-          wav_file_part = myaudio[curr_split.start : curr_split.stop]
           
-          if not os.path.exists("speaker_{speaker_id}".format(speaker_id = int(curr_speaker))):
-            os.makedirs("speaker_{speaker_id}".format(speaker_id = int(curr_speaker)))
-          
-          wav_file_part.export( "speaker_{speaker_id}/audio_chunk_{curr_interval}.wav".format(curr_interval = curr_split.stop, speaker_id = int(curr_speaker)), format="wav")      
+          if((curr_split.stop - curr_split.start) > 2):
+            wav_file_part = myaudio[curr_split.start * 1000 : curr_split.stop * 1000]
+            
+            if not os.path.exists("speaker_{speaker_id}".format(speaker_id = int(curr_speaker))):
+              os.makedirs("speaker_{speaker_id}".format(speaker_id = int(curr_speaker)))
+            
+            wav_file_part.export( "speaker_{speaker_id}/audio_chunk_{curr_interval}.wav".format(curr_interval = curr_split.stop, speaker_id = int(curr_speaker)), format="wav")      
     
 
 def split_speaker_id(speaker):
@@ -43,7 +46,7 @@ def split_speaker_id(speaker):
 def speaker_diaraztion():
   print("starting diaraztion.....")
   
-  diarization = pipeline("test.wav")
+  diarization = pipeline("test2.wav")
   
   for turn, _, speaker in diarization.itertracks(yield_label=True):
     interval = Splits(turn.start , turn.end)
@@ -71,34 +74,40 @@ def repetative_analsys(file_path, speaker_id):
   with current_interval as source:
     audio = r.record(source)
   
-    print(file_path)
     #audio_interval = AudioSegment.from_file(file_path, "wav")
-    text = r.recognize_google(audio, language='en-IN', show_all=True)
-    #debuging
-    print(text)
-
-    total_repeat_sum = 0
+    try:  
+      text = r.recognize_google(audio)
+    except Exception as e:
+      return
   
+    total_repeat_sum = 0
   #splited_text = text.split()
   #a dict to hold how much each word repeats
   word_counts = {}
-    
-  for word in text:
-      # If the word is not yet in the dictionary, add it with a count of 1
-    if word not in word_counts:
-      word_counts[word] = 1
-      # If the word is already in the dictionary, increment its count
-    else:
-      word_counts[word] += 1
-    
-  for curr_value in word_counts.values():
-    if (curr_value >= 3):
-      total_repeat_sum += 1
-    
-    if(total_repeat_sum >= 3):
-      repeat_ranking_list[speaker_id] += -1
-    else:
-      repeat_ranking_list[speaker_id] += 1
+  
+  if(len(text) > 0):
+      
+    for word in text:
+        # If the word is not yet in the dictionary, add it with a count of 1
+      if word not in word_counts:
+        word_counts[word] = 1
+        # If the word is already in the dictionary, increment its count
+      else:
+        word_counts[word] += 1
+      
+    for curr_value in word_counts.values():
+      if (curr_value >= 5):
+        total_repeat_sum += 1
+      
+      if(total_repeat_sum >= 5):
+        repeat_ranking_list[int(speaker_id)] += -1
+      else:
+        repeat_ranking_list[int(speaker_id)] += 1
+        
+        
+def normalize_results(score_list):
+  for index in range(len(score_list)):
+    score_list[index] *= 0.01
   
   
 
@@ -107,14 +116,18 @@ def repetative_analsys(file_path, speaker_id):
 #need to add next -> add features from other branch -> full test
 def main():
   speaker_diaraztion()
-  devide_wav_by_speaker_and_intervals("test.wav")
+  devide_wav_by_speaker_and_intervals("test2.wav")
 
   for curr_speaker in speakers_dict.keys():
     for filename in os.listdir(f"speaker_{int(curr_speaker)}"):
-      print(filename)
+      
       f = os.path.join(f"speaker_{int(curr_speaker)}" ,filename)
       if os.path.isfile(f):
         repetative_analsys(f"speaker_{int(curr_speaker)}/{filename}", curr_speaker)
+        
+  normalize_results(repeat_ranking_list)
+  
+  os.system('cls||clear')
 
     
     
