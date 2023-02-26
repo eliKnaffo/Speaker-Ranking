@@ -1,6 +1,7 @@
 import os
 import pprint
 import numpy as np
+import myspsolution as mysp
 from pydub import AudioSegment
 import speech_recognition as sr
 from collections import namedtuple
@@ -20,7 +21,7 @@ pasues_ranking_list = [0] * 10
 
 
 pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization",
-                                    use_auth_token="")
+                                    use_auth_token="<ENTER-API-KEY-HERE>")
 
 
 
@@ -56,17 +57,31 @@ def speaker_diaraztion():
   print("done!")
 
 
+def get_median_speech_tone(file_path, speaker_id):
+  p = "audio_chunk" # Audio File title
+  c = file_path # Path to the Audio_File directory
+  if(mysp.myspf0med(p,c) > 130):
+    speed_ranking_list[int(speaker_id)] += -1
+  if(mysp.myspf0med(p,c) < 130):
+    speed_ranking_list[int(speaker_id)] += 1
+
+
 #needs to be in a for loop probably
-def get_speech_rate(file):
-    # Load the WAV file
-    r = sr.Recognizer()
-    with sr.AudioFile(file) as source:
-        audio = r.record(source)
-    # Calculate the speech rate
-    rate = sr.speech_rate(audio)
-    
-    #add the avarge calculation
-    print(rate)
+def get_speech_rate(file_path, speaker_id):
+  p = "audio_chunk" # Audio File title
+  c = file_path # Path to the Audio_File directory
+  if(mysp.myspsr(p,c) > 5):
+    speed_ranking_list[int(speaker_id)] += 1
+  if(mysp.myspsr(p,c) < 5):
+    speed_ranking_list[int(speaker_id)] += -1
+
+def get_pouses(file_path, speaker_id):
+  p = "audio_chunk" # Audio File title
+  c = file_path # Path to the Audio_File directory
+  if(mysp.mysppaus(p,c) > 6):
+    pasues_ranking_list[int(speaker_id)] += 1
+  if(mysp.mysppaus(p,c) < 6):
+    pasues_ranking_list[int(speaker_id)] += -1
 
 
 def repetative_analsys(file_path, speaker_id):
@@ -124,13 +139,35 @@ def main():
       f = os.path.join(f"speaker_{int(curr_speaker)}" ,filename)
       if os.path.isfile(f):
         repetative_analsys(f"speaker_{int(curr_speaker)}/{filename}", curr_speaker)
+        get_median_speech_tone(f"speaker_{int(curr_speaker)}/{filename}", curr_speaker)
+        get_speech_rate(f"speaker_{int(curr_speaker)}/{filename}", curr_speaker)
+        get_pouses(f"speaker_{int(curr_speaker)}/{filename}", curr_speaker)
         
   normalize_results(repeat_ranking_list)
-  
+  normalize_results(speed_ranking_list)
+  normalize_results(pitch_ranking_list)
+  normalize_results(pasues_ranking_list)
+
   os.system('cls||clear')
 
-    
-    
-main()
 
-print(repeat_ranking_list)
+def calculate_total_ranking():
+    
+    n = len(repeat_ranking_list)
+    
+    # Create an empty array to store the sums
+    ranking = [0] * n
+
+    ranking_and_original_index_tuple = [(repeat_ranking_list[i] + speaker_ranking_list[i] + pitch_ranking_list[i] + pasues_ranking_list[i], i) for i in range(n)]
+
+    # Sort the list of tuples by the sum
+    sorted_ranking_tuple = sorted(ranking_and_original_index_tuple)
+    
+    print("Ranking by speaker total score: ")
+    # Loop through the sorted tuples and print the sorted sum and index
+    for i in range(n):
+        print( "speaker_"+sorted_ranking_tuple[i][1], sorted_ranking_tuple[i][0])
+    
+
+main()
+calculate_total_ranking()
